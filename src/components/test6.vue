@@ -52,9 +52,7 @@
         for(let i=0; i<this.rows; i++){
           for(let j=0; j<this.cols; j++){
             this.grid.push({  
-              options: [],
-              useableOptions: [],
-              unUseAbleOptions: [],           
+              options: [this.BLANK, this.UP, this.DOWN, this.RIGHT, this.LEFT],              
               row: i, 
               col: j, 
               tile: [{path: "", options: ""}], 
@@ -64,12 +62,12 @@
           }
         }  
         // defin tiles type :  up -> right -> down -> left
-        this.tiles[0] = {path: "../public/asset/tiles/demo/blank.png", options: ['0', '0', '0', '0']};
-        this.tiles[1] = {path: "../public/asset/tiles/demo/up.png",    options: ['1', '1', '0', '1']};
-        this.tiles[2] = {path: "../public/asset/tiles/demo/right.png", options: ['1', '1', '1', '0']}; 
-        this.tiles[3] = {path: "../public/asset/tiles/demo/down.png",  options: ['0', '1', '1', '1']};
-        this.tiles[4] = {path: "../public/asset/tiles/demo/left.png",  options: ['1', '0', '1', '1']};
-        
+        this.tiles[0] = {path: "../public/asset/tiles/demo/blank.png", options: ['0', '0', '0', '0']}; 
+        this.tiles[1] = {path: "../public/asset/tiles/demo/down.png",  options: ['0', '1', '1', '1']};
+        this.tiles[2] = {path: "../public/asset/tiles/demo/left.png",  options: ['1', '0', '1', '1']};
+        this.tiles[3] = {path: "../public/asset/tiles/demo/right.png", options: ['1', '1', '1', '0']};
+        this.tiles[4] = {path: "../public/asset/tiles/demo/up.png",    options: ['1', '1', '0', '1']};
+
         for(let i=0; i<1; i++){
           let randomIndex = Math.floor(Math.random()*(this.cols * this.rows));
           this.grid[randomIndex].tile = this.tiles[Math.floor((Math.random()*4))];    
@@ -82,11 +80,10 @@
       getDraw(currentGrid){
 
         let currentRowIndex = currentGrid.row * this.cols + currentGrid.col;
-        let upIndex         = currentRowIndex - this.cols;
+        let upIndex         = currentRowIndex-this.cols;
         let rightIndex      = currentRowIndex + 1;
         let downIndex       = currentRowIndex + this.cols;
         let leftIndex       = currentRowIndex - 1;
-        
 
         console.log("currentRowIndex",              currentRowIndex);
         console.log("upIndex",                      upIndex);
@@ -96,20 +93,14 @@
         console.log("currentGrid.options[2]",       currentGrid.options[2]);
         console.log("currentGrid.tile.options[2]",  currentGrid.tile.options[2])
 
-        this.getUp(currentGrid);
-        this.getRight(currentGrid);
-        this.getDown(currentGrid);
-        this.getLeft(currentGrid);
-        console.log("this.nextGrid", this.nextGrid);
-        this.getDraw(this.nextGrid[0]);
-        
-        // for(let i=0; i<this.nextGrid.length; i++){
-          
-        
-        // }
-        
+        for(let i=0; i< 2; i++){
+          this.getUp(currentGrid);
+          this.getRight(currentGrid);
+          this.getDown(currentGrid);
+          this.getLeft(currentGrid);
+        }
 
-
+        
 
         // if (upIndex >= 0){
         //   let upCell = this.grid[upIndex];
@@ -167,88 +158,87 @@
 
       getUp(currentGrid){
         let currentRowIndex = currentGrid.row * this.cols + currentGrid.col;
-        let upIndex = currentRowIndex - this.cols;
-        let useableTiles = [];
-
+        let upIndex         = currentRowIndex-this.cols;
         if (upIndex >= 0){
           let upCell = this.grid[upIndex];
-          for(let i=0; i<5; i++){
-            if(this.tiles[i].options[2] == this.grid[currentRowIndex].tile.options[0]){ 
-              useableTiles.push(this.tiles[i]);
-            }   
-          } 
-          if(useableTiles.length > 0){
-            let randomIndex = Math.floor(Math.random()*useableTiles.length); 
-            let selectedTile = useableTiles[randomIndex];
-            upCell.tile = selectedTile;
-            upCell.collapsed = true;
-            upCell.useableOptions = useableTiles
-            this.nextGrid.push(this.grid[upIndex]);
-          }           
-        }       
+          for(let i=0; i<4; i++){
+            if(this.tiles[i].options[2] == this.grid[currentRowIndex].tile.options[0]){
+              upCell.tile = this.tiles[i];
+              console.log("upIndex tile", i, this.tiles[i]);
+              upCell.collapsed = true;
+              currentGrid = upCell
+              // this.getDraw(currentGrid)
+              // this.newCurrentGrid.push(upCell);
+            }
+          }  
+        }
+        else{
+          return 0;
+        }
+
       },
       
       getRight(currentGrid){
         let currentRowIndex = currentGrid.row * this.cols + currentGrid.col;
-        let rightIndex = currentRowIndex + 1;
-        let useableTiles = [];
+        let rightIndex      = currentRowIndex + 1;
         if (rightIndex % this.cols !== 0){
           let rightCell = this.grid[rightIndex]
-          for(let i=0; i<5; i++){
+          for(let i=0; i<4; i++){
             if(this.tiles[i].options[3] == this.grid[currentRowIndex].tile.options[1]){
-              useableTiles.push(this.tiles[i]);
+              rightCell.tile = this.tiles[i]
+              console.log("rightIndex tile", i, this.tiles[i]);
+              rightCell.collapsed = true;
+              currentGrid = rightCell
+              // this.getDraw(currentGrid)
+              // this.newCurrentGrid.push(rightCell);
             }
           }
-          if(useableTiles.length > 0){
-            let randomIndex = Math.floor(Math.random()*useableTiles.length)
-            let selectedTile = useableTiles[randomIndex];
-            rightCell.tile = selectedTile;
-            rightCell.collapsed = true;
-            this.nextGrid.push(this.grid[rightIndex]);
-          }
         }
+        else{
+          return 0;
+        }
+
       },
 
       getDown(currentGrid){
         let currentRowIndex = currentGrid.row * this.cols + currentGrid.col;
-        let downIndex = currentRowIndex + this.cols;
-        let useableTiles = []
+        let downIndex       = currentRowIndex + this.cols;
         if(downIndex < this.rows * this.cols){
           let downCell = this.grid[downIndex]
-          for(let i=0; i<5; i++){
+          for(let i=0; i<4; i++){
             if(this.tiles[i].options[0] == this.grid[currentRowIndex].tile.options[2]){
-              useableTiles.push(this.tiles[i]);
-            }   
-          }
-          if(useableTiles.length > 0){
-            let randomIndex = Math.floor(Math.random() * useableTiles.length)
-            let selectedTile = useableTiles[randomIndex];
-            downCell.tile = selectedTile;
-            downCell.collapsed = true;
-            this.nextGrid.push(this.grid[downIndex]);
+              downCell.tile = this.tiles[i]
+              console.log("downIndex tile", i, this.tiles[i]);
+              downCell.collapsed = true;
+              currentGrid = downCell
+              // this.getDraw(currentGrid)
+              // this.newCurrentGrid.push(downCell);        
+            }
           }
         }
+
       },
 
       getLeft(currentGrid){
         let currentRowIndex = currentGrid.row * this.cols + currentGrid.col;
-        let leftIndex = currentRowIndex - 1;
-        let useableTiles = []
+        let leftIndex       = currentRowIndex - 1;
         if(leftIndex % this.cols !== this.cols - 1 && leftIndex >= 0){
           let leftCell = this.grid[leftIndex]
-          for(let i=0; i<5; i++){
+          for(let i=0; i<4; i++){
             if(this.tiles[i].options[1] == this.grid[currentRowIndex].tile.options[3]){
-              useableTiles.push(this.tiles[i]);
+              leftCell.tile = this.tiles[i]
+              console.log("lefIndex tile", i, this.tiles[i]);
+              leftCell.collapsed = true;
+              currentGrid = leftCell
+              // this.getDraw(currentGrid)
+              // this.newCurrentGrid.push(leftCell);
             }
           } 
-          if(useableTiles.length > 0){
-            let randomIndex = Math.floor(Math.random() * (useableTiles.length))
-            let selectedTile = useableTiles[randomIndex];
-            leftCell.tile = selectedTile;
-            leftCell.collapsed = true;
-            this.nextGrid.push(this.grid[leftIndex]);
-          }
         }
+        else{
+          return 0;
+        }
+
       }
       
 

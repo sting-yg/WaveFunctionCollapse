@@ -10,37 +10,79 @@
         stroke="white"
         stroke-width="1"        
       />      
-      <image v-if="cell.tile != null && cell.collapsed == true" 
-        :href="cell.tile.path" 
-        height="100" 
-        width="100" 
-        :x="cell.col*100" 
-        :y="cell.row*100" 
-        :transform="`rotate(${cell.rotation}, ${cell.col*100+50}, ${cell.row*100+50})`" />
+      <image v-if="cell.option != null && cell.collapsed == true" 
+        :href="tiles[cell.option]" 
+        height="50" 
+        width="50" 
+        :x="cell.col*50" 
+        :y="cell.row*50" />
     </g>
+    <rect v-if="currentCell"
+        :x="currentCell.col * cellSize"
+        :y="currentCell.row * cellSize"
+        :width="cellSize"
+        :height="cellSize"
+        stroke="red"
+        stroke-width="3"        
+      /> 
   </svg>
   <div>
     <button @click="createMaze">TestButton</button>
   </div>
 </template>
 <script>
-import App_copy from './components/App_copy.vue';
 
-
-  export default{
+export default{
     data(){
       return{
         grid:[],
-        tiles: [],
+        tiles: {
+          blank: "../public/asset/tiles/demo/blank.png",
+          up: "../public/asset/tiles/demo/up.png",
+          right: "../public/asset/tiles/demo/right.png", 
+          down: "../public/asset/tiles/demo/down.png",
+          left: "../public/asset/tiles/demo/left.png",
+        },
         width: 1000,
         height: 1000,
-        cellSize: 100,
-        cols: 10,
-        rows: 10,
-        currentGrid: null,
-        nextGrid: [],
-        openset: [],
+        cellSize: 50,
+        cols: 5,
+        rows: 5,
         closedset: [],         
+        possibleOptions: {
+          'blank' : {
+            'u': ['up', 'blank'],
+            'r': ['right', 'blank'],
+            'd': ['down', 'blank'],
+            'l': ['left', 'blank'],
+          },
+          'up' : {
+            'u': ['down', 'left', 'right'],
+            'r': ['left', 'up', 'down'],
+            'd': ['down', 'blank'],
+            'l': ['right', 'up', 'down'],
+          },
+          'right' : {
+            'u': ['down', 'left', 'right'],
+            'r': ['left', 'up', 'down'],
+            'd': ['up', 'left', 'right'],
+            'l': ['left', 'blank'],
+          },
+          'down' : {
+            'u': ['up', 'blank'],
+            'r': ['left', 'up', 'down'],
+            'd': ['up', 'left', 'right'],
+            'l': ['right', 'up', 'down'],
+          },
+          'left' : {
+            'u': ['down', 'left', 'right'],
+            'r': ['right', 'blank'],
+            'd': ['up', 'left', 'right'],
+            'l': ['right', 'up', 'down'],
+          },
+        },
+        options: ['blank', 'up', 'right', 'down', 'left'],
+        currentCell: null,
       }
     },
     created(){
@@ -52,34 +94,19 @@ import App_copy from './components/App_copy.vue';
         for(let i=0; i<this.rows; i++){
           for(let j=0; j<this.cols; j++){
             this.grid.push({  
-              options: [0,1,2,3,4],
-              useableOptions: [],    
-              disableOptions: [],
+              options: ['blank', 'up', 'right', 'down', 'left'],
+              option: null,
               row: i, 
               col: j, 
-              tile: null, 
-              rotation: 0,
               collapsed: false,
               });
           }
-        }  
-        // defin tiles type :  up -> right -> down -> left
-        this.tiles = [
-          {path: "../public/asset/tiles/demo/blank.png", options: ['0', '0', '0', '0']},
-          {path: "../public/asset/tiles/demo/up.png",    options: ['1', '1', '0', '1']},
-          {path: "../public/asset/tiles/demo/right.png", options: ['1', '1', '1', '0']}, 
-          {path: "../public/asset/tiles/demo/down.png",  options: ['0', '1', '1', '1']},
-          {path: "../public/asset/tiles/demo/left.png",  options: ['1', '0', '1', '1']},
-        ];       
+        }     
         
         let randomIndex = Math.floor(Math.random()*(this.cols * this.rows));
-        //this.grid[randomIndex].tile = this.tiles[Math.floor((Math.random()*this.tiles.length))];    
-        //this.grid[randomIndex].collapsed = true
-        //this.currentGrid = this.grid[randomIndex];
-        this.openset.push(this.grid[randomIndex]);
-             
-        console.log("currentGrid", this.currentGrid);
-        console.log("openset", this.openset);
+        this.grid[randomIndex].option = this.options[Math.floor((Math.random()*this.options.length))];    
+        this.grid[randomIndex].collapsed = true;
+        console.log(randomIndex, this.grid[randomIndex]);
       },   
 
       getCell(row, col) {
@@ -91,69 +118,43 @@ import App_copy from './components/App_copy.vue';
           return null;
         }
       },
-      
-      createMaze(){     
-        while(this.openset.length > 0) {
-          const current = this.openset.pop();
 
-          // 전체 상태 캡처
-          
-          // const possibleOptions = [...current.options]; //복사
-
-          //const copyGrid = this.grid.slice();
-
-          const up = this.getCell(current.row-1, current.col);    
-          const right = this.getCell(current.row, current.col+1);
-          const down = this.getCell(current.row-1, current.col);
-          const left = this.getCell(current.row, current.col-1);
-
-            if(up != nulle) {
-              for(let i=0; i<this.tiles.length; i++) {
-                  if(up.tile.options[3] == this.tiles[i].options[0]){
-                    current.useableOptions.push(this.tiles[i]);
-                    current.options.remove(i)
-                    console.log("current.options" , current.options);
-                  }
-              }
-              this.openset.push(up);
-            }
-            // right 
-            // down
-            // left
-
-            const random = Math.floor(Math.random() * current.options.length)
-            current.tile = this.tiles[random]
-
-          if(up != null){             
-            if(up.collapsed == false){
-              this.openset.push(up);
-            }
-          }
-          else if(right != null){
-            if(right.collapsed == false){
-              this.openset.push(right)
-            }
-          }
-          else if(down != null){
-            if(right.collapsed == false){
-              this.openset.push(down)
-            }
-          }
-          else if(down != null){
-            if(right.collapsed == false){
-              this.openset.push(left) 
-            }
-            else{
-              this.closedset.push(left)
-            }
-          }
-          else{
-
-          }
-          // if(possibleOptions.length == 0) {
-
-          // }
+      createMaze() {  
+        if(this.tryCollapse() == false) {
+          alert('no options');
         }
+      },
+      
+      tryCollapse() {     
+        const candis = this.grid.filter(x => x.collapsed == false);
+        if(candis.length == 0) {
+          return false;
+        }
+
+        const current = candis[Math.floor((Math.random()*candis.length))];  
+        this.currentCell = current;
+        const neighbor = [
+          {dir:'up', opposite:'d', cell: this.getCell(current.row-1, current.col)},    
+          {dir:'right', opposite:'l', cell:this.getCell(current.row, current.col+1)},
+          {dir:'down', opposite:'u', cell:this.getCell(current.row+1, current.col)},
+          {dir:'left', opposite:'r', cell:this.getCell(current.row, current.col-1)}
+        ];
+
+        let myOptions = [...current.options];
+        neighbor.filter(x => x.cell && x.cell.collapsed).forEach(x => {
+          const options = this.possibleOptions[x.cell.option][x.opposite];
+          console.log(x, options);
+          myOptions = myOptions.filter(y => options.includes(y));
+        });
+
+        if(myOptions.length == 0)
+        {
+          return false;
+        }
+
+        current.option = myOptions[Math.floor((Math.random()*myOptions.length))];
+        current.collapsed = true;
+        return true;
       },
     }
   }   

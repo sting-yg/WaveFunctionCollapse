@@ -16,18 +16,30 @@
         width="50" 
         :x="cell.col*50" 
         :y="cell.row*50" />
+      <text v-if="cell.collapsed == false" 
+        :x="cell.col*50" 
+        :y="cell.row*50 + 25" 
+        stroke="yellow" 
+        stroke-width="1"
+        class="small">
+        {{ `${cell.options.map(x => x.at(0)).join('').toUpperCase()}` }}
+      </text>
     </g>
     <rect v-if="currentCell"
         :x="currentCell.col * cellSize"
         :y="currentCell.row * cellSize"
         :width="cellSize"
         :height="cellSize"
+        fill="transparent"
         stroke="red"
         stroke-width="3"        
       /> 
   </svg>
   <div>
-    <button @click="createMaze">TestButton</button>
+    <button @click="resetMaze">Reset</button>
+    <button @click="createMazeStep">StepTest</button>
+    <button @click="createMaze">Run</button>
+    <button @click="stopCreate">Stop</button>
   </div>
   <div>
     <p>{{ message }}</p>
@@ -49,8 +61,9 @@ export default{
         width: 500,
         height: 500,
         cellSize: 50,
-        cols: 3,
-        rows: 3,
+        cols: 10,
+        rows: 10,
+        resetCount: 10,
         possibleOptions: {
           'blank' : {
             'u': ['up', 'blank'],
@@ -87,6 +100,7 @@ export default{
         currentCell: null,
         snapshots: [],
         message: "",
+        timer: null,
       }
     },
     created(){
@@ -117,23 +131,44 @@ export default{
         }
       },
 
-      createMaze() {  
+      resetMaze() {
         this.grid.forEach(x => {
           x.options = ['blank', 'up', 'right', 'down', 'left'];
           x.option = null;
           x.collapsed = false;
         });
-        let randomIndex = Math.floor(Math.random()*(this.cols * this.rows));
-        this.grid[randomIndex].option = this.options[Math.floor((Math.random()*this.options.length))];    
-        this.grid[randomIndex].collapsed = true;
-        console.log(randomIndex, this.grid[randomIndex]);
+        for(let i=0; i<this.resetCount; i++) 
+        {
+          let randomIndex = Math.floor(Math.random()*(this.cols * this.rows));
+          if(this.grid[randomIndex].collapsed == true) {
+            continue;
+          }
+          this.grid[randomIndex].option = this.options[Math.floor((Math.random()*this.options.length))];    
+          this.grid[randomIndex].collapsed = true;
+        }
         this.snapshots = [];
-        
-        const timer = setInterval(() => {
-          if(this.grid.every(x => x.collapsed)) {
+      },
+
+      createMaze() { 
+        this.timer = setInterval(() => {
+          if(this.createMazeStep() == false) {
+            clearInterval(this.timer);
+            this.timer = null;
+          }          
+        }, 100);
+      },
+
+      stopCreate() {
+        if(this.timer) {
+          clearInterval(this.timer);
+          this.timer = null;
+        }
+      },
+
+      createMazeStep() {
+        if(this.grid.every(x => x.collapsed)) {
             this.message = "done";
-              clearInterval(timer);
-              return;
+              return false;
           }
 
           const snapshot = this.grid.map(x => ({cell:x, options:x.options.slice(), collapsed:x.collapsed}));
@@ -145,8 +180,7 @@ export default{
           else {
             if(this.snapshots.length == 0) {
               this.message = "no solution";
-              clearInterval(timer);
-              return;
+              return false;
             }
 
             const lastSnapshot = this.snapshots.pop();
@@ -162,16 +196,28 @@ export default{
             }
             lastSnapshot.cell.collapsed = false;
           }
-        }, 100);
+          return true;
       },
-      
-      tryCollapse() {     
-        const candis = this.grid.filter(x => x.collapsed == false);
+
+      findMinEntrophyCell() {
+        const candis = this.grid.filter(x => x.collapsed == false).map(x => ({
+          cell: x,
+          collapsedCount: this.grid.filter(y => y.row == x.row && y.collapsed).length + this.grid.filter(y => y.col == x.col && y.collapsed).length
+        })).sort((x,y) => y.collapsedCount - x.collapsedCount);
+        console.log(candis);
         if(candis.length == 0) {
           return null;
         }
+        
+        return candis[0].cell;
+      },
+      
+      tryCollapse() {  
+        const current = this.findMinEntrophyCell();
+        if(current == null) {
+          return null;
+        }
 
-        const current = candis[Math.floor((Math.random()*candis.length))];
         const neighbor = [
           {dir:'up', opposite:'d', cell: this.getCell(current.row-1, current.col)},    
           {dir:'right', opposite:'l', cell:this.getCell(current.row, current.col+1)},

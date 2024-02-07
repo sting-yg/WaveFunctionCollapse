@@ -29,6 +29,9 @@
   <div>
     <button @click="createMaze">TestButton</button>
   </div>
+  <div>
+    <p>{{ message }}</p>
+  </div>
 </template>
 <script>
 
@@ -43,12 +46,11 @@ export default{
           down: "../public/asset/tiles/demo/down.png",
           left: "../public/asset/tiles/demo/left.png",
         },
-        width: 1000,
-        height: 1000,
+        width: 500,
+        height: 500,
         cellSize: 50,
-        cols: 5,
-        rows: 5,
-        closedset: [],         
+        cols: 3,
+        rows: 3,
         possibleOptions: {
           'blank' : {
             'u': ['up', 'blank'],
@@ -83,6 +85,8 @@ export default{
         },
         options: ['blank', 'up', 'right', 'down', 'left'],
         currentCell: null,
+        snapshots: [],
+        message: "",
       }
     },
     created(){
@@ -90,7 +94,6 @@ export default{
     },
     methods:{
       initializeGrid(){             
-        let index = 0            
         for(let i=0; i<this.rows; i++){
           for(let j=0; j<this.cols; j++){
             this.grid.push({  
@@ -101,12 +104,7 @@ export default{
               collapsed: false,
               });
           }
-        }     
-        
-        let randomIndex = Math.floor(Math.random()*(this.cols * this.rows));
-        this.grid[randomIndex].option = this.options[Math.floor((Math.random()*this.options.length))];    
-        this.grid[randomIndex].collapsed = true;
-        console.log(randomIndex, this.grid[randomIndex]);
+        }
       },   
 
       getCell(row, col) {
@@ -120,19 +118,60 @@ export default{
       },
 
       createMaze() {  
-        if(this.tryCollapse() == false) {
-          alert('no options');
-        }
+        this.grid.forEach(x => {
+          x.options = ['blank', 'up', 'right', 'down', 'left'];
+          x.option = null;
+          x.collapsed = false;
+        });
+        let randomIndex = Math.floor(Math.random()*(this.cols * this.rows));
+        this.grid[randomIndex].option = this.options[Math.floor((Math.random()*this.options.length))];    
+        this.grid[randomIndex].collapsed = true;
+        console.log(randomIndex, this.grid[randomIndex]);
+        this.snapshots = [];
+        
+        const timer = setInterval(() => {
+          if(this.grid.every(x => x.collapsed)) {
+            this.message = "done";
+              clearInterval(timer);
+              return;
+          }
+
+          const snapshot = this.grid.map(x => ({cell:x, options:x.options.slice(), collapsed:x.collapsed}));
+
+          this.currentCell = this.tryCollapse();
+          if(this.currentCell) {
+            this.snapshots.push({before: snapshot, cell:this.currentCell, option:this.currentCell.option});
+          }
+          else {
+            if(this.snapshots.length == 0) {
+              this.message = "no solution";
+              clearInterval(timer);
+              return;
+            }
+
+            const lastSnapshot = this.snapshots.pop();
+            lastSnapshot.before.forEach(x => {
+              x.cell.options = x.options.slice();
+              x.cell.collapsed = x.collapsed;
+            });
+
+            //lastSnapshot.cell.options = lastSnapshot.options;
+            const optionIndex = lastSnapshot.cell.options.indexOf(lastSnapshot.option);
+            if(optionIndex >= 0) {
+              lastSnapshot.cell.options.splice(optionIndex, 1);
+            }
+            lastSnapshot.cell.collapsed = false;
+          }
+        }, 100);
       },
       
       tryCollapse() {     
         const candis = this.grid.filter(x => x.collapsed == false);
         if(candis.length == 0) {
-          return false;
+          return null;
         }
 
-        const current = candis[Math.floor((Math.random()*candis.length))];  
-        this.currentCell = current;
+        const current = candis[Math.floor((Math.random()*candis.length))];
         const neighbor = [
           {dir:'up', opposite:'d', cell: this.getCell(current.row-1, current.col)},    
           {dir:'right', opposite:'l', cell:this.getCell(current.row, current.col+1)},
@@ -143,18 +182,18 @@ export default{
         let myOptions = [...current.options];
         neighbor.filter(x => x.cell && x.cell.collapsed).forEach(x => {
           const options = this.possibleOptions[x.cell.option][x.opposite];
-          console.log(x, options);
+          //console.log(x, options);
           myOptions = myOptions.filter(y => options.includes(y));
         });
 
         if(myOptions.length == 0)
         {
-          return false;
+          return null;
         }
 
         current.option = myOptions[Math.floor((Math.random()*myOptions.length))];
         current.collapsed = true;
-        return true;
+        return current;
       },
     }
   }   

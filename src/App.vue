@@ -61,8 +61,8 @@ export default{
         width: 500,
         height: 500,
         cellSize: 50,
-        cols: 10,
-        rows: 10,
+        cols: 5,
+        rows: 5,
         resetCount: 10,
         possibleOptions: {
           'blank' : {
